@@ -1,5 +1,3 @@
-Here is a precise translation of the provided text:
-
 # Vector Post-Training Quantization (VPTQ) for LLMs
 
 Vector Post-Training Quantization (VPTQ) is an advanced technique designed to compress large language models (LLMs) to ultra-low bit representations (down to 2 bits) without significant performance loss. This method allows for efficient use of models in resource-constrained environments, reducing memory requirements, optimizing storage, and decreasing memory bandwidth load during inference.
