@@ -8,7 +8,7 @@ To successfully run the model on a GPU using VPTQ, you need to ensure that all s
 
 ### Requirements
 
-1. **Operating System**: The project has been tested and works on **Linux**. Operation on Windows has not been verified.
+1. **Operating System**: The project has been tested and works on **Ubuntu 24.04**.
 2. **CUDA**: Version **CUDA 12.1** (compatible with PyTorch).
 3. **GPU**: An NVIDIA GPU with CUDA support is required.
 
