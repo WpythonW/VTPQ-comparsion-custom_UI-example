@@ -31,7 +31,68 @@ VPTQ uses vector quantization to represent model weights using indices and codeb
     \item \textbf{Updating quantization errors:} After quantization, individual vectors are adjusted using the remaining errors, which allows for higher accuracy.
 \end{enumerate}
 
-\section{Advantages of VPTQ Compared to Other Methods}
+\section{Comparative Performance Analysis}
+
+We conducted additional tests comparing VPTQ and Ollama implementations of the Qwen2.5 14B model on an A2 16GB GPU. The results show a significant difference in token generation speed between VPTQ and Ollama models.
+
+\subsection{VPTQ Results}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lcc}
+\toprule
+Model & Tokens & Tokens/second \\
+\midrule
+v8-k256-256-woft & 111 & 5.22 \\
+v8-k65536-256-woft & 111 & 5.21 \\
+v8-k65536-65536-woft & 111 & 2.10 \\
+v16-k65536-65536-woft & 111 & 2.02 \\
+v8-k65536-0-woft & 111 & 3.77 \\
+\bottomrule
+\end{tabular}
+\caption{VPTQ Performance Results}
+\label{tab:vptq-results}
+\end{table}
+
+\subsection{Ollama Results}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lcc}
+\toprule
+Model & Quantization & Tokens/second \\
+\midrule
+qwen2.5:14b-instruct & q6\_K & 10.06 \\
+qwen2.5:14b-instruct & q5\_0 & 14.30 \\
+\bottomrule
+\end{tabular}
+\caption{Ollama Performance Results}
+\label{tab:ollama-results}
+\end{table}
+
+\subsection{Analysis of Performance Discrepancy}
+
+The slower inference in VPTQ models compared to Ollama can be attributed to several factors:
+
+\begin{enumerate}
+    \item \textbf{Kernel and Quantization Optimization}: Ollama utilizes more optimized kernels for inference, significantly increasing token processing speed (up to 205.29 tokens/s in some cases). VPTQ models, on the other hand, use less optimized quantization algorithms, reducing their efficiency in token generation.
+    
+    \item \textbf{Complex VPTQ Architecture}: Models with higher levels of quantization, such as \texttt{v8-k65536-65536-woft}, show a noticeable decrease in speed (down to 2 tokens/s). This is because lower bitrates and a larger number of centroids require more computational resources for dequantization and codebook lookup, increasing latency.
+    
+    \item \textbf{Differences in Parallelization Approach}: Ollama may better manage multi-processor computations and parallel processing, which could also explain higher inference speeds. VPTQ is currently not optimized for efficient use of multi-processor systems.
+    
+    \item \textbf{Quantization Model Differences}: VPTQ models show varying results depending on the chosen codebook parameters (e.g., \texttt{k256} vs \texttt{k65536}), indicating that model configuration can significantly affect performance. Models with larger codebooks may generate higher latencies due to a more complex index table lookup process.
+    
+    \item \textbf{Suboptimal Kernels for Low Bitrates}: VPTQ's kernels for inference at lower bitrates (e.g., 2 or 3 bits) are not optimized, leading to more computations during dequantization and codebook usage. This substantially increases latencies and reduces performance. 4-bit models have more optimized kernels, explaining their higher speed compared to lower bits.
+    
+    \item \textbf{CUDA Configuration Issues}: Some users have encountered problems with CUDA configuration where GPU kernels were not found, leading to a switch to a slower PyTorch-based implementation, further slowing down inference.
+    
+    \item \textbf{Lack of Multi-GPU and KV Cache Optimizations}: The current VPTQ implementation lacks key optimizations for working with multiple GPUs and using KV cache, which could significantly improve performance, especially on larger models.
+\end{enumerate}
+
+These findings suggest that the main reasons for VPTQ's slower performance compared to Ollama are unoptimized kernels, a more complex quantization architecture, and fewer parallel computing resources, which increase token generation time. To improve VPTQ's performance, optimizing kernels for lower bitrates, enhancing support for multi-processor systems, and addressing CUDA configuration issues would be beneficial.
+
+\section{Comparative Analysis: VPTQ vs Other Quantization Methods}
 
 VPTQ demonstrates significant advantages over other quantization methods, including GPTQ, QuIP, and AQLM. Let's compare these methods across key metrics:
 
@@ -42,14 +103,6 @@ VPTQ excels in maintaining high accuracy even at extremely low bitwidths (down t
     \item \textbf{VPTQ vs GPTQ}: On LLaMA-2 7B at 2-bit quantization, VPTQ achieves a WikiText-2 perplexity of 6.13, while GPTQ results in an unusable model with perplexity over 50.
     \item \textbf{VPTQ vs QuIP}: For LLaMA-2 13B at 2-bit, VPTQ achieves a WikiText-2 perplexity of 5.32, compared to QuIP's 5.35.
     \item \textbf{VPTQ vs AQLM}: On LLaMA-2 70B at 2-bit, VPTQ and AQLM achieve similar perplexities (3.93 vs 3.94), but VPTQ shows better QA accuracy (68.6% vs 68.5%).
-\end{itemize}
-
-\subsection{Computational Efficiency}
-VPTQ significantly accelerates the inference process:
-
-\begin{itemize}
-    \item \textbf{Throughput}: For LLaMA-2 7B at 2-bit, VPTQ achieves 39.9 tokens/second, compared to QuIP's 4.4 tokens/second and AQLM's 19.4 tokens/second.
-    \item \textbf{Memory Usage}: VPTQ requires only 2.28 GB for LLaMA-2 7B at 2-bit, while AQLM needs 2.16 GB.
 \end{itemize}
 
 \subsection{Quantization Time}
@@ -87,7 +140,7 @@ VPTQ significantly accelerates the inference process compared to traditional qua
 VPTQ allows reducing the amount of memory required to store the model to 10-15\% of the original volume. This makes it possible to run large models on devices with limited resources, such as modern GPUs with 24 GB of memory.
 
 \subsection{Ease of Integration}
-VPTQ can be easily integrated with existing deep learning frameworks such as PyTorch and TensorFlow, which simplifies its application in various projects and research.
+VPTQ can be easily integrated with existing deep learning frameworks such as PyTorch, which simplifies its application in various projects and research.
 
 \section{Disadvantages and Limitations of VPTQ}
 
@@ -117,7 +170,7 @@ Companies providing AI services can reduce infrastructure costs. This is due to 
 \subsection{Contribution to Sustainable Development}
 Reducing model size leads to lower energy consumption. This contributes to environmental sustainability and reduces the carbon footprint associated with large language models.
 
-\section{Business Use Cases for VPTQ}
+\section{Business Applications and Use Cases of VPTQ}
 
 \subsection{Optimization of AI Infrastructure}
 Companies providing cloud AI services can use VPTQ to reduce the costs of storing and processing large models. This allows offering more affordable solutions to clients.
@@ -131,7 +184,7 @@ Devices with limited computational resources can use VPTQ to perform some AI tas
 \subsection{Education and Research}
 Reducing resource requirements makes VPTQ a useful tool for educational institutions and research centers. This allows them to work with large models without the need to invest in expensive infrastructure.
 
-\section{Directions for Future Development}
+\section{Future Work and Research Directions in VPTQ}
 
 \subsection{Expanding Language Support}
 It is necessary to test VPTQ on models trained in various languages. This will help confirm its effectiveness in multilingual scenarios.
